@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows10.0.22000.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PublishAot>False</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>

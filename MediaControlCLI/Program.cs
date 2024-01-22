@@ -1,46 +1,57 @@
 ﻿using WindowsMediaController;
 using static WindowsMediaController.MediaManager;
 
-string[] arg = Environment.GetCommandLineArgs();
-if (arg.Length != 2 && arg.Length != 3)
-{
-    PrintHelp();
-}
-
-if (arg[1].ToLower() == "help")
-{
-    PrintHelp();
-}
-
-string command = arg[1].ToLower();
+string command = "";
+string player = "";
+bool interactive = false;
 bool anySession = false;
+bool success = false;
+
+if (args.Length > 2)
+{
+    PrintHelp();
+}
 
 MediaManager mediaManager = new MediaManager();
-mediaManager.OnAnySessionOpened += MediaManager_OnAnySessionOpened;
-mediaManager.Start();
 
-if (!anySession)
+if (args.Length > 0)
 {
-    if (arg.Length == 3)
+    if (args[0].ToLower().Contains("help") || args[0].Contains("?") || args[0].ToLower() == "/h" || args[0].ToLower() == "-h")
     {
-        Console.WriteLine("No media players found with the name " + arg[2]);
+        PrintHelp();
     }
-    else
+    string cmd = args[0];
+    if (cmd.ToLower() == "utf8")
     {
-        Console.WriteLine("No media players found");
+        Console.InputEncoding = System.Text.Encoding.UTF8;
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+        InteractiveMode();
     }
+
+    if (args.Length > 1)
+    {
+        cmd += " " + args[1];
+    }
+
+    ProcessCommand(cmd);
+    Environment.Exit(success ? 0 : 1);
+}
+else
+{
+    InteractiveMode();
 }
 
-void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
+async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
 {
     var songInfo = mediaSession.ControlSession.TryGetMediaPropertiesAsync().GetAwaiter().GetResult();
-    if (arg.Length == 3)
+    if (player != "")
     {
-        if (mediaSession.Id.ToLower() != arg[2].ToLower() && songInfo.Title.ToLower() != arg[2].ToLower())
+        if (mediaSession.Id.ToLower() != player.ToLower() && songInfo.Title.ToLower() != player.ToLower())
         {
             return;
         }
     }
+    anySession = true;
 
     var controlsInfo = mediaSession.ControlSession.GetPlaybackInfo().Controls;
     switch (command)
@@ -48,7 +59,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "play":
             if (controlsInfo.IsPlayEnabled)
             {
-                _ = mediaSession.ControlSession.TryPlayAsync();
+                await mediaSession.ControlSession.TryPlayAsync();
+                success = true;
             }
             else
             {
@@ -58,7 +70,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "pause":
             if (controlsInfo.IsPauseEnabled)
             {
-                _ = mediaSession.ControlSession.TryPauseAsync();
+                await mediaSession.ControlSession.TryPauseAsync();
+                success = true;
             }
             else
             {
@@ -68,7 +81,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "playpause":
             if (controlsInfo.IsPauseEnabled || controlsInfo.IsPlayEnabled)
             {
-                _ = mediaSession.ControlSession.TryTogglePlayPauseAsync();
+                await mediaSession.ControlSession.TryTogglePlayPauseAsync();
+                success = true;
             }
             else
             {
@@ -78,7 +92,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "stop":
             if (controlsInfo.IsStopEnabled)
             {
-                _ = mediaSession.ControlSession.TryStopAsync();
+                await mediaSession.ControlSession.TryStopAsync();
+                success = true;
             }
             else
             {
@@ -88,7 +103,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "prev":
             if (controlsInfo.IsPreviousEnabled)
             {
-                _ = mediaSession.ControlSession.TrySkipPreviousAsync();
+                await mediaSession.ControlSession.TrySkipPreviousAsync();
+                success = true;
             }
             else
             {
@@ -98,7 +114,8 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
         case "next":
             if (controlsInfo.IsNextEnabled)
             {
-                _ = mediaSession.ControlSession.TrySkipNextAsync();
+                await mediaSession.ControlSession.TrySkipNextAsync();
+                success = true;
             }
             else
             {
@@ -117,22 +134,106 @@ void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
             Console.WriteLine("Track Count: " + songInfo.AlbumTrackCount);
             Console.WriteLine("Genres: " + string.Join(", ", songInfo.Genres));
             Console.WriteLine();
+            if (controlsInfo.IsPauseEnabled)
+            {
+                Console.WriteLine("Playback Status: Playing");
+            }
+            else if (controlsInfo.IsPlayEnabled)
+            {
+                Console.WriteLine("Playback Status: Paused");
+            } else
+            {
+                Console.WriteLine("Playback Status: Stopped");
+            }
+            Console.WriteLine();
+            success = true;
             break;
         default:
-            PrintHelp();
+            Console.WriteLine("Unknown command: " + command);
+            if (interactive)
+            {
+                Console.WriteLine("Type \"help\" for help");
+            }
+            else
+            {
+                Console.WriteLine("Run \"" + AppDomain.CurrentDomain.FriendlyName + " help\" for help");
+            }
+            Console.WriteLine();
+            mediaManager.OnAnySessionOpened -= MediaManager_OnAnySessionOpened;
             break;
     }
-    anySession = true;
+}
+
+void InteractiveMode()
+{
+    interactive = true;
+    PrintInfo();
+    while (true)
+    {
+        Console.Write("MediaControlCLI> ");
+        string? cmd = Console.ReadLine();
+        switch (cmd!.ToLower())
+        {
+            case "help":
+                PrintHelp();
+                break;
+            case "exit":
+                Environment.Exit(0);
+                break;
+            default:
+                ProcessCommand(cmd);
+                break;
+        }
+    }
+}
+
+void ProcessCommand(string cmd)
+{
+    string[] cmdSplit = cmd.Split(" ", 2);
+    command = cmdSplit[0].ToLower();
+    if (cmdSplit.Length > 1)
+    {
+        player = cmdSplit[1];
+    }
+    else
+    {
+        player = "";
+    }
+    success = false;
+    anySession = false;
+
+    mediaManager.OnAnySessionOpened += MediaManager_OnAnySessionOpened;
+    mediaManager.Start();
+
+    if (!anySession)
+    {
+        if (player != "")
+        {
+            Console.WriteLine("No media players found with the name " + player);
+            Console.WriteLine("Type \"print\" to print info about all available media players.");
+            Console.WriteLine();
+        }
+        else
+        {
+            Console.WriteLine("No media players found");
+            Console.WriteLine();
+        }
+    }
+
+    mediaManager.Dispose();
 }
 
 void PrintHelp()
 {
-    Console.WriteLine("MediaControlCLI v1.0");
-    Console.WriteLine("Made by Ingan121");
-    Console.WriteLine("Licensed under the MIT License");
-    Console.WriteLine("https://github.com/Ingan121/MediaControlCLI");
-    Console.WriteLine();
-    Console.WriteLine("Usage: " + Path.GetFileName(arg[0]) + " [command] ([match])");
+    if (!interactive)
+    {
+        PrintInfo();
+        Console.WriteLine("Usage: " + AppDomain.CurrentDomain.FriendlyName + " [command] ([match])");
+    }
+    else
+    {
+        Console.WriteLine("Usage: ([command]) ([match])");
+    }
     Console.WriteLine("Commands:");
     Console.WriteLine("  help - Show this help");
     Console.WriteLine("  play - Play media");
@@ -142,6 +243,14 @@ void PrintHelp()
     Console.WriteLine("  prev - Previous media");
     Console.WriteLine("  next - Next media");
     Console.WriteLine("  print - Print media info");
+    if (interactive)
+    {
+        Console.WriteLine("  exit - Exit");
+    }
+    else
+    {
+        Console.WriteLine("  utf8 - Enter interactive mode with UTF-8 encoding");
+    }
     Console.WriteLine();
     Console.WriteLine("Match:");
     Console.WriteLine("  One of the following:");
@@ -149,6 +258,22 @@ void PrintHelp()
     Console.WriteLine("    Title of the media");
     Console.WriteLine();
     Console.WriteLine("If match is not specified, the command will be executed on all players.");
+    if (!interactive)
+    {
+        Console.WriteLine("If command is not specified, the program will enter interactive mode.");
+    }
     Console.WriteLine();
-    Environment.Exit(1);
+    if (!interactive)
+    {
+        Environment.Exit(1);
+    }
+}
+
+void PrintInfo()
+{
+    Console.WriteLine("MediaControlCLI v1.0");
+    Console.WriteLine("Made by Ingan121");
+    Console.WriteLine("Licensed under the MIT License");
+    Console.WriteLine("https://github.com/Ingan121/MediaControlCLI");
+    Console.WriteLine();
 }
