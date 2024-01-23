@@ -203,7 +203,16 @@ void ProcessCommand(string cmd)
     anySession = false;
 
     mediaManager.OnAnySessionOpened += MediaManager_OnAnySessionOpened;
-    mediaManager.Start();
+
+    try
+    {
+        mediaManager.Start();
+    }
+    catch (TypeInitializationException)
+    {
+        Console.WriteLine("Media controls are not supported on this system.");
+        Environment.Exit(2);
+    }
 
     if (!anySession)
     {
