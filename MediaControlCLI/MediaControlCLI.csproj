@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>False</PublishAot>
+    <Authors>Ingan121</Authors>
+    <Company>Ingan121</Company>
+    <RepositoryUrl>https://github.com/Ingan121/MediaControlCLI</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2024 Ingan121, Licensed under the MIT License</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

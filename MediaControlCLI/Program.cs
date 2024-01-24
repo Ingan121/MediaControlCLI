@@ -156,7 +156,7 @@ async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
             }
             else
             {
-                Console.WriteLine("Run \"" + AppDomain.CurrentDomain.FriendlyName + " help\" for help");
+                Console.WriteLine("Run \"MediaControlCLI help\" for help");
             }
             Console.WriteLine();
             mediaManager.OnAnySessionOpened -= MediaManager_OnAnySessionOpened;
@@ -167,6 +167,7 @@ async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
 void InteractiveMode()
 {
     interactive = true;
+    Console.Title = "MediaControlCLI";
     PrintInfo();
     while (true)
     {
@@ -237,7 +238,7 @@ void PrintHelp()
     if (!interactive)
     {
         PrintInfo();
-        Console.WriteLine("Usage: " + AppDomain.CurrentDomain.FriendlyName + " [command] ([match])");
+        Console.WriteLine("Usage: MediaControlCLI [command] ([match])");
     }
     else
     {
