@@ -44,6 +44,7 @@ else
 async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
 {
     var songInfo = mediaSession.ControlSession.TryGetMediaPropertiesAsync().GetAwaiter().GetResult();
+    
     if (player != "")
     {
         if (mediaSession.Id.ToLower() != player.ToLower() && songInfo.Title.ToLower() != player.ToLower())
@@ -123,6 +124,9 @@ async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
             }
             break;
         case "print":
+            var playbackInfo = mediaSession.ControlSession.GetPlaybackInfo();
+            var positionInfo = mediaSession.ControlSession.GetTimelineProperties();
+            
             Console.WriteLine("Media from " + mediaSession.Id);
             Console.WriteLine();
             Console.WriteLine("Title: " + songInfo.Title);
@@ -133,18 +137,14 @@ async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
             Console.WriteLine("Track Number: " + songInfo.TrackNumber);
             Console.WriteLine("Track Count: " + songInfo.AlbumTrackCount);
             Console.WriteLine("Genres: " + string.Join(", ", songInfo.Genres));
+            Console.WriteLine("Media Type: " + playbackInfo.PlaybackType);
             Console.WriteLine();
-            if (controlsInfo.IsPauseEnabled)
-            {
-                Console.WriteLine("Playback Status: Playing");
-            }
-            else if (controlsInfo.IsPlayEnabled)
-            {
-                Console.WriteLine("Playback Status: Paused");
-            } else
-            {
-                Console.WriteLine("Playback Status: Stopped");
-            }
+            Console.WriteLine("Playback Status: " + playbackInfo.PlaybackStatus);
+            Console.WriteLine("Playback Rate: " + playbackInfo.PlaybackRate);
+            Console.WriteLine("Playback Position: " + positionInfo.Position.ToString("hh':'mm':'ss") + " / " + positionInfo.EndTime.ToString("hh':'mm':'ss"));
+            Console.WriteLine();
+            Console.WriteLine("Shuffle: " + playbackInfo.IsShuffleActive);
+            Console.WriteLine("Repeat: " + playbackInfo.AutoRepeatMode);
             Console.WriteLine();
             success = true;
             break;
