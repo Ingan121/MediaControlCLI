@@ -1,4 +1,5 @@
-﻿using WindowsMediaController;
+﻿using System.Runtime.InteropServices;
+using WindowsMediaController;
 using static WindowsMediaController.MediaManager;
 
 string command = "";
@@ -149,16 +150,7 @@ async void MediaManager_OnAnySessionOpened(MediaSession mediaSession)
             success = true;
             break;
         default:
-            Console.WriteLine("Unknown command: " + command);
-            if (interactive)
-            {
-                Console.WriteLine("Type \"help\" for help");
-            }
-            else
-            {
-                Console.WriteLine("Run \"MediaControlCLI help\" for help");
-            }
-            Console.WriteLine();
+            PrintUnknown();
             mediaManager.OnAnySessionOpened -= MediaManager_OnAnySessionOpened;
             break;
     }
@@ -203,6 +195,13 @@ void ProcessCommand(string cmd)
     success = false;
     anySession = false;
 
+    string[] commands = { "play", "pause", "playpause", "stop", "prev", "next", "print" };
+    if (!commands.Contains(command))
+    {
+        PrintUnknown();
+        return;
+    }
+
     mediaManager.OnAnySessionOpened += MediaManager_OnAnySessionOpened;
 
     try
@@ -213,6 +212,11 @@ void ProcessCommand(string cmd)
     {
         Console.WriteLine("Media controls are not supported on this system.");
         Environment.Exit(2);
+    }
+    catch (COMException)
+    {
+        Console.WriteLine("Media controls are currently not available. Make sure stock explorer.exe is running.");
+        Environment.Exit(3);
     }
 
     if (!anySession)
@@ -281,9 +285,22 @@ void PrintHelp()
 
 void PrintInfo()
 {
-    Console.WriteLine("MediaControlCLI v1.0");
+    Console.WriteLine("MediaControlCLI v1.1");
     Console.WriteLine("Made by Ingan121");
     Console.WriteLine("Licensed under the MIT License");
     Console.WriteLine("https://github.com/Ingan121/MediaControlCLI");
     Console.WriteLine();
+}
+
+void PrintUnknown()
+{
+    Console.WriteLine("Unknown command: " + command);
+    if (interactive)
+    {
+        Console.WriteLine("Type \"help\" for help\n");
+    }
+    else
+    {
+        Console.WriteLine("Run \"MediaControlCLI help\" for help");
+    }
 }
